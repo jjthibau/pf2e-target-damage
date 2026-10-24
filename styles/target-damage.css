@@ -1,0 +1,20 @@
+.chat-message .message-content .damage-application.pf2e-target-damage-controls {
+  flex-wrap: wrap;
+}
+.chat-message .message-content .damage-application button.pf2e-target-damage {
+  flex: 1 0 100%;
+  flex-direction: row;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  padding: 2px 6px;
+  margin-top: 3px;
+  font-size: var(--font-size-12);
+  min-height: 30px;
+  height: auto;
+  line-height: 1.2;
+}
+.pf2e-target-damage img { width: 22px; height: 22px; border: 0; object-fit: cover; }
+.pf2e-target-damage .target-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

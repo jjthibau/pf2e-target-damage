@@ -1,0 +1,18 @@
+{
+  "id": "pf2e-target-damage",
+  "title": "PF2e Apply Damage to Target",
+  "description": "A GM-only damage-card button applies native PF2e damage to the token recorded on the roll.",
+  "version": "0.1.0",
+  "authors": [{"name": "Jesse"}],
+  "compatibility": {"minimum": "14.369", "verified": "14.369", "maximum": "14"},
+  "relationships": {"systems": [{"id": "pf2e", "type": "system", "compatibility": {"minimum": "8.6.0", "verified": "8.6.0"}}]},
+  "esmodules": ["scripts/main.js"],
+  "styles": ["styles/target-damage.css"],
+  "license": "LICENSE",
+  "readme": "README.md",
+  "changelog": "CHANGELOG.md",
+  "url": "https://github.com/jjthibau/pf2e-target-damage",
+  "manifest": "https://github.com/jjthibau/pf2e-target-damage/releases/latest/download/module.json",
+  "download": "https://github.com/jjthibau/pf2e-target-damage/releases/download/v0.1.0/module.zip",
+  "bugs": "https://github.com/jjthibau/pf2e-target-damage/issues"
+}

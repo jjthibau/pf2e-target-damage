@@ -1,0 +1,1 @@
+{"name":"pf2e-target-damage","version":"0.1.0","private":true,"type":"module","scripts":{"test:native":"node tests/run-native.mjs","check":"node --check scripts/main.js","test":"npm run check && npm run build && npm run check:release","build":"python tools/build_release.py","check:release":"python tools/check_release.py"}}
