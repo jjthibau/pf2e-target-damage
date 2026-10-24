@@ -36,6 +36,7 @@ def build(tag=None):
     with zipfile.ZipFile(dest / 'module.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         for relative in FILES:
             entry = zipfile.ZipInfo(relative, (2026, 1, 1, 0, 0, 0))
+            entry.create_system = 3  # Identical metadata on Windows and Linux builders.
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o100644 << 16
             archive.writestr(entry, (ROOT / relative).read_bytes())
