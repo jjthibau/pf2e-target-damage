@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 - 2026-11-18
+
+- Guard recorded targets, honor healing-only cards, and stop automatic repeats after an uncertain native damage result. Add portable damage-adapter checks.
+
 ## 0.1.0 — 2026-10-23
 
 - GM-only Apply to Target button with the recorded token's name and portrait.

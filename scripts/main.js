@@ -1,12 +1,18 @@
 const ID = 'pf2e-target-damage';
 const pending = new Set();
+const uncertain = new Set();
+const uncertainReason = 'The result is uncertain. Check the recorded target’s HP and the chat damage receipt before applying damage again.';
 
 function recordedTarget(message) {
-  const uuid = message.flags.pf2e?.context?.target?.token;
+  const target = message.flags.pf2e?.context?.target;
+  const uuid = target?.token;
   if (!uuid) return {reason: 'No target was recorded on this damage roll.'};
   const match = /^Scene\.(\w+)\.Token\.(\w+)$/.exec(uuid);
   const token = match && game.scenes.get(match[1])?.tokens.get(match[2]);
   if (!token?.actor) return {reason: 'The recorded target token is no longer available.'};
+  if (target.actor && token.actor.uuid !== target.actor) {
+    return {reason: 'The recorded token now has a different actor.'};
+  }
   return {token};
 }
 
@@ -14,7 +20,7 @@ function recordedTarget(message) {
  * Supply its recipient for that call only; retain the complete native damage pipeline.
  * No canvas selection changes, global lasting patches, copied IWR logic, or socket messages.
  */
-function invokeNativeDamage(button, token) {
+export function invokeNativeDamage(button, token) {
   const action = ui.chat.options.actions.applyDamage;
   if (typeof action !== 'function') throw Error('PF2e native damage action is unavailable.');
   const user = game.user;
@@ -28,35 +34,53 @@ function invokeNativeDamage(button, token) {
   }
 }
 
+function disableTarget(button, reason) {
+  button.disabled = true;
+  button.title = reason;
+  button.setAttribute('aria-label', reason);
+  button.querySelector('.target-name')?.remove();
+  button.querySelector('img')?.remove();
+}
+
 async function apply(message, button, rollIndex) {
   if (!game.user.isGM || !message.isDamageRoll || message.flags.pf2e?.suppressDamageButtons) return;
   const key = `${message.id}:${rollIndex}`;
   if (pending.has(key)) return;
+  if (uncertain.has(key)) return disableTarget(button, uncertainReason);
   const {token, reason} = recordedTarget(message);
-  if (!token) return ui.notifications.warn(reason);
+  if (!token) {
+    disableTarget(button, reason);
+    return ui.notifications.warn(reason);
+  }
   // Cards explicitly aimed at their speaker use a separate native recipient path.
   // Never let that path supersede the recorded recipient.
   const card = button.closest('[data-message-id]');
-  if (!card || card.dataset.actorIsTarget) return;
+  if (!card || card.dataset.actorIsTarget || !button.parentElement?.querySelector('[data-action="applyDamage"][data-multiplier="1"]')) return;
   pending.add(key);
   button.disabled = true;
+  let dispatched = false;
   try {
-    await invokeNativeDamage(button, token);
+    const result = invokeNativeDamage(button, token);
+    dispatched = true;
+    await result;
   } catch (error) {
     console.error(`${ID}: native damage application failed`, error);
-    ui.notifications.error('Damage could not be applied. Check the target and use the normal damage controls.');
+    if (dispatched) uncertain.add(key);
+    ui.notifications.error(dispatched ? uncertainReason : 'Could not start the PF2e damage action.');
   } finally {
     pending.delete(key);
-    button.disabled = !recordedTarget(message).token;
+    const disabledReason = uncertain.has(key) ? uncertainReason : recordedTarget(message).reason;
+    if (disabledReason) disableTarget(button, disabledReason);
+    else button.disabled = false;
   }
 }
 
 function render(message, html) {
   if (!game.user.isGM || !message.isDamageRoll || message.flags.pf2e?.suppressDamageButtons || html.dataset.actorIsTarget) return;
   for (const group of html.querySelectorAll('.damage-application')) {
-    if (group.querySelector('.pf2e-target-damage')) continue;
+    if (group.querySelector('.pf2e-target-damage') || !group.querySelector('[data-action="applyDamage"][data-multiplier="1"]')) continue;
     group.classList.add('pf2e-target-damage-controls');
-    const rollIndex = Number(group.dataset.rollIndex) || 0;
+    const rollIndex = Number(group.closest('[data-roll-index]')?.dataset.rollIndex) || 0;
     const {token, reason} = recordedTarget(message);
     const button = document.createElement('button');
     button.type = 'button';
@@ -78,6 +102,7 @@ function render(message, html) {
       name.textContent = token.name;
       button.append(name);
     }
+    if (uncertain.has(`${message.id}:${rollIndex}`)) disableTarget(button, uncertainReason);
     button.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
@@ -88,6 +113,11 @@ function render(message, html) {
 }
 
 Hooks.on('renderChatMessageHTML', render);
+Hooks.on('deleteChatMessage', message => {
+  for (const key of uncertain) {
+    if (key.startsWith(`${message.id}:`)) uncertain.delete(key);
+  }
+});
 Hooks.once('ready', () => {
   game.modules.get(ID).api = Object.freeze({recordedTarget});
 });
